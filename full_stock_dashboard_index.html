@@ -1,0 +1,211 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Multi-Stock Daily P&L Dashboard</title>
+  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f5f7fa; margin: 20px; }
+    h1, h2 { text-align: center; color: #333; }
+    .container { max-width: 1500px; margin: auto; }
+    #summary, #portfolioSummary { display: flex; justify-content: space-around; margin: 20px 0; flex-wrap: wrap; }
+    .kpi { background: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); text-align: center; flex: 1; margin: 10px; min-width: 200px; }
+    .chart-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(500px, 1fr)); gap: 20px; margin-bottom: 30px; }
+    .chart { background: white; padding: 10px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+    select { padding: 8px; border-radius: 5px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>📊 Multi-Stock Daily P&L Dashboard</h1>
+
+    <!-- Portfolio Summary -->
+    <h2>📈 Portfolio Overview</h2>
+    <div id="portfolioSummary">
+      <div class="kpi">
+        <h3>Total Investment</h3>
+        <p id="portfolioInvestment">-</p>
+      </div>
+      <div class="kpi">
+        <h3>Total Gain/Loss</h3>
+        <p id="portfolioGainLoss">-</p>
+      </div>
+      <div class="kpi">
+        <h3>Portfolio ROI (%)</h3>
+        <p id="portfolioROI">-</p>
+      </div>
+    </div>
+
+    <!-- Portfolio Charts -->
+    <div class="chart-grid">
+      <div class="chart" id="portfolioPieChart"></div>
+      <div class="chart" id="portfolioGainChart"></div>
+    </div>
+    <div class="chart-grid">
+      <div class="chart" id="portfolioROIChart"></div>
+    </div>
+
+    <!-- Stock Selector -->
+    <div id="stockSelector" style="text-align:center; margin-top:20px;">
+      <label for="stockDropdown"><b>Select Stock:</b></label>
+      <select id="stockDropdown"></select>
+    </div>
+
+    <!-- Individual Stock Summary -->
+    <h2>📊 Individual Stock Dashboard</h2>
+    <div id="summary">
+      <div class="kpi">
+        <h3>Stock Name</h3>
+        <p id="stockName">-</p>
+      </div>
+      <div class="kpi">
+        <h3>Initial Investment</h3>
+        <p id="initialInvestment">-</p>
+      </div>
+      <div class="kpi">
+        <h3>Total Gain/Loss</h3>
+        <p id="totalGainLoss">-</p>
+      </div>
+      <div class="kpi">
+        <h3>ROI (%)</h3>
+        <p id="roi">-</p>
+      </div>
+    </div>
+
+    <!-- Individual Stock Charts -->
+    <div class="chart-grid">
+      <div class="chart" id="dailyChart"></div>
+      <div class="chart" id="cumulativeChart"></div>
+    </div>
+  </div>
+
+  <script>
+    const preloadedData = [{"Stock": "Sun Pharmaceutical Industries Ltd", "Quantity": 11.0, "Price (7 Feb)": 1749.8, "Total Amount": 19247.8, "Day1(10feb)": -195.0, "Day2(11feb)": -356.0, "Day3(12feb)": -59.0, "Day4(13feb)": 578.0, "Day5(14feb)": -466.0, "Day6(17feb)": 151.0, "Day7(18feb)": -139.0, "Day8(19feb)": -275.0, "Day9(20feb)": -80.0, "Day10(21Feb)": -281.0, "Day11(24Feb)": -47.0, "Day12(25feb)": -285.0, "Day13(27Feb)": 373.0, "Day14(28Feb)": -597.0, "Day15(3Mar)": -90.0, "Day16(4Mar)": -205.0, "Day17(5Mar)": 175.0, "Day18(6Mar)": 347.0, "Day19(7Mar)": -52.0, "Day20(10Mar)": 24.0}, {"Stock": "Oil and Natural Gas Corporation Ltd", "Quantity": 81.0, "Price (7 Feb)": 248.9, "Total Amount": 20160.9, "Day1(10feb)": -522.0, "Day2(11feb)": -284.0, "Day3(12feb)": -130.0, "Day4(13feb)": -198.0, "Day5(14feb)": -348.0, "Day6(17feb)": 255.0, "Day7(18feb)": 239.0, "Day8(19feb)": 138.0, "Day9(20feb)": 292.0, "Day10(21Feb)": -162.0, "Day11(24Feb)": -450.0, "Day12(25feb)": -109.0, "Day13(27Feb)": -162.0, "Day14(28Feb)": -466.0, "Day15(3Mar)": -10.0, "Day16(4Mar)": 132.0, "Day17(5Mar)": 177.0, "Day18(6Mar)": 296.0, "Day19(7Mar)": 23.0, "Day20(10Mar)": -786.0}, {"Stock": "PB Fintech Ltd", "Quantity": 11.0, "Price (7 Feb)": 1725.4, "Total Amount": 18979.4, "Day1(10feb)": -700.0, "Day2(11feb)": -1348.0, "Day3(12feb)": 624.0, "Day4(13feb)": 451.0, "Day5(14feb)": -747.0, "Day6(17feb)": -876.0, "Day7(18feb)": 349.0, "Day8(19feb)": -157.0, "Day9(20feb)": -31.0, "Day10(21Feb)": 591.0, "Day11(24Feb)": -90.0, "Day12(25feb)": -540.0, "Day13(27Feb)": -52.0, "Day14(28Feb)": -409.0, "Day15(3Mar)": -129.0, "Day16(4Mar)": -416.0, "Day17(5Mar)": -46.0, "Day18(6Mar)": -32.0, "Day19(7Mar)": -98.0, "Day20(10Mar)": 304.0}, {"Stock": "Thermax", "Quantity": 6.0, "Price (7 Feb)": 3388.05, "Total Amount": 20328.300000000003, "Day1(10feb)": -655.0, "Day2(11feb)": -682.0, "Day3(12feb)": 72.0, "Day4(13feb)": -25.0, "Day5(14feb)": -405.0, "Day6(17feb)": -585.0, "Day7(18feb)": 1202.0, "Day8(19feb)": 767.0, "Day9(20feb)": -67.0, "Day10(21Feb)": -42.0, "Day11(24Feb)": -218.0, "Day12(25feb)": -507.0, "Day13(27Feb)": -58.0, "Day14(28Feb)": 345.0, "Day15(3Mar)": -281.0, "Day16(4Mar)": 16.0, "Day17(5Mar)": 195.0, "Day18(6Mar)": 378.0, "Day19(7Mar)": 359.0, "Day20(10Mar)": -163.0}, {"Stock": "Ajanta Pharma Ltd", "Quantity": 7.0, "Price (7 Feb)": 2691.7, "Total Amount": 18841.899999999998, "Day1(10feb)": -648.0, "Day2(11feb)": -552.0, "Day3(12feb)": -49.0, "Day4(13feb)": -136.0, "Day5(14feb)": -425.0, "Day6(17feb)": 704.0, "Day7(18feb)": 670.0, "Day8(19feb)": 224.0, "Day9(20feb)": -873.0, "Day10(21Feb)": -400.0, "Day11(24Feb)": -295.0, "Day12(25feb)": 148.0, "Day13(27Feb)": 29.0, "Day14(28Feb)": -726.0, "Day15(3Mar)": -294.0, "Day16(4Mar)": 34.0, "Day17(5Mar)": 791.0, "Day18(6Mar)": 53.0, "Day19(7Mar)": -46.0, "Day20(10Mar)": -284.0}, {"Stock": "Nippon India ETF Nifty 50 BeES", "Quantity": 6.0, "Price (7 Feb)": 263.75, "Total Amount": 1582.5, "Day1(10feb)": -11.0, "Day2(11feb)": -20.0, "Day3(12feb)": -1.0, "Day4(13feb)": -1.0, "Day5(14feb)": -9.0, "Day6(17feb)": 1.0, "Day7(18feb)": -2.0, "Day8(19feb)": 0.0, "Day9(20feb)": 0.0, "Day10(21Feb)": -8.0, "Day11(24Feb)": -16.0, "Day12(25feb)": -1.0, "Day13(27Feb)": -1.0, "Day14(28Feb)": -25.0, "Day15(3Mar)": -2.0, "Day16(4Mar)": -3.0, "Day17(5Mar)": 18.0, "Day18(6Mar)": 14.0, "Day19(7Mar)": 1.0, "Day20(10Mar)": -7.0}, {"Stock": "Nippon India ETF Gold 50 BeES", "Quantity": 12.0, "Price (7 Feb)": 71.54, "Total Amount": 858.48, "Day1(10feb)": 12.0, "Day2(11feb)": -6.0, "Day3(12feb)": -6.0, "Day4(13feb)": 5.0, "Day5(14feb)": 4.0, "Day6(17feb)": -7.0, "Day7(18feb)": 4.0, "Day8(19feb)": 9.0, "Day9(20feb)": -3.0, "Day10(21Feb)": -5.0, "Day11(24Feb)": 6.0, "Day12(25feb)": 2.0, "Day13(27Feb)": -10.0, "Day14(28Feb)": -9.0, "Day15(3Mar)": 3.0, "Day16(4Mar)": 13.0, "Day17(5Mar)": -2.0, "Day18(6Mar)": -5.0, "Day19(7Mar)": 4.0, "Day20(10Mar)": 0.0}];
+
+    let allStocksData = {}, portfolioMetrics = [];
+
+    // Initialize dashboard with all preloaded stocks
+    initDashboard(preloadedData);
+
+    function initDashboard(stockArray) {
+      allStocksData = {};
+      portfolioMetrics = [];
+
+      stockArray.forEach(stock => {
+        const stockName = stock["Stock"];
+        allStocksData[stockName] = stock;
+
+        const investment = parseFloat(stock["Total Amount"] || 0);
+        const dayKeys = Object.keys(stock).filter(k => k.toLowerCase().includes("day"))
+          .sort((a,b) => parseInt(a.match(/\d+/)) - parseInt(b.match(/\d+/)));
+
+        let totalPL = 0;
+        dayKeys.forEach(k => totalPL += parseFloat(stock[k]) || 0);
+        const roi = investment ? (totalPL / investment) * 100 : 0;
+
+        portfolioMetrics.push({
+          stock: stockName,
+          investment: investment,
+          gainLoss: totalPL,
+          roi: roi
+        });
+      });
+
+      populateDropdown();
+      renderPortfolioSummary();
+
+      const firstStock = Object.keys(allStocksData)[0];
+      if (firstStock) displayStockDashboard(allStocksData[firstStock]);
+    }
+
+    function populateDropdown() {
+      const dropdown = document.getElementById("stockDropdown");
+      dropdown.innerHTML = "";
+      Object.keys(allStocksData).forEach(stockName => {
+        const opt = document.createElement("option");
+        opt.value = stockName;
+        opt.textContent = stockName;
+        dropdown.appendChild(opt);
+      });
+      dropdown.addEventListener("change", () => {
+        const selected = dropdown.value;
+        if (selected && allStocksData[selected]) displayStockDashboard(allStocksData[selected]);
+      });
+    }
+
+    function renderPortfolioSummary() {
+      const totalInv = portfolioMetrics.reduce((sum, s) => sum + s.investment, 0);
+      const totalGain = portfolioMetrics.reduce((sum, s) => sum + s.gainLoss, 0);
+      const totalROI = totalInv ? (totalGain / totalInv) * 100 : 0;
+
+      document.getElementById("portfolioInvestment").textContent = `₹ ${totalInv.toLocaleString()}`;
+      document.getElementById("portfolioGainLoss").textContent = `${totalGain >= 0 ? '✅ +' : '❌ '}${totalGain.toLocaleString()}`;
+      document.getElementById("portfolioROI").textContent = `${totalROI.toFixed(2)}%`;
+
+      Plotly.newPlot("portfolioPieChart", [{
+        labels: portfolioMetrics.map(s => s.stock),
+        values: portfolioMetrics.map(s => s.investment),
+        type: "pie", hole: 0.4,
+        textinfo: "label+percent",
+        hovertemplate: "<b>%{label}</b><br>Investment: ₹%{value:,.2f}<br>Share: %{percent}"
+      }], { title: "Investment Distribution" });
+
+      Plotly.newPlot("portfolioGainChart", [{
+        x: portfolioMetrics.map(s => s.stock),
+        y: portfolioMetrics.map(s => s.gainLoss),
+        type: "bar",
+        marker: { color: portfolioMetrics.map(s => s.gainLoss >= 0 ? "green" : "red") },
+        hovertemplate: "<b>%{x}</b><br>Total Gain/Loss: ₹%{y:,.2f}"
+      }], { title: "Total Gain/Loss", xaxis: {title: "Stock"}, yaxis: {title: "₹"} });
+
+      Plotly.newPlot("portfolioROIChart", [{
+        x: portfolioMetrics.map(s => s.stock),
+        y: portfolioMetrics.map(s => s.roi),
+        type: "bar",
+        marker: { color: "blue" },
+        hovertemplate: "<b>%{x}</b><br>ROI: %{y:.2f}%"
+      }], { title: "ROI % per Stock", xaxis: {title: "Stock"}, yaxis: {title: "ROI %"} });
+    }
+
+    function displayStockDashboard(stock) {
+      const stockName = stock["Stock"];
+      const inv = parseFloat(stock["Total Amount"] || 0);
+      const dayKeys = Object.keys(stock).filter(k => k.toLowerCase().includes("day"))
+        .sort((a,b)=>parseInt(a.match(/\d+/)) - parseInt(b.match(/\d+/)));
+
+      const days = [], dailyPL = [];
+      dayKeys.forEach(k => {
+        days.push(k);
+        dailyPL.push(parseFloat(stock[k]) || 0);
+      });
+
+      let cumulative = [];
+      let running = 0;
+      dailyPL.forEach(val => { running += val; cumulative.push(running); });
+
+      const totalPL = running;
+      const roi = inv ? (totalPL / inv) * 100 : 0;
+
+      document.getElementById("stockName").textContent = stockName;
+      document.getElementById("initialInvestment").textContent = `₹ ${inv.toLocaleString()}`;
+      document.getElementById("totalGainLoss").textContent = `${totalPL >= 0 ? '✅ +' : '❌ '}${totalPL.toLocaleString()}`;
+      document.getElementById("roi").textContent = `${roi.toFixed(2)}%`;
+
+      Plotly.newPlot("dailyChart", [{
+        x: days, y: dailyPL,
+        type: "bar",
+        marker: { color: dailyPL.map(v => v >= 0 ? "green" : "red") },
+        hovertemplate: "<b>%{x}</b><br>Daily P/L: ₹%{y:,.2f}"
+      }], { title: `Daily Profit/Loss - ${stockName}`, xaxis: {title: "Days"}, yaxis: {title: "₹"} });
+
+      Plotly.newPlot("cumulativeChart", [{
+        x: days, y: cumulative,
+        type: "scatter", mode: "lines+markers",
+        line: { color: "blue" },
+        hovertemplate: "<b>%{x}</b><br>Cumulative P/L: ₹%{y:,.2f}"
+      }], { title: `Cumulative P/L - ${stockName}`, xaxis: {title: "Days"}, yaxis: {title: "₹"} });
+    }
+  </script>
+</body>
+</html>
